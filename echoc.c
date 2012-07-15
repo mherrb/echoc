@@ -47,9 +47,11 @@ int
 main(int argc, char *argv[])
 {
 	char name[NI_MAXHOST];
+	char buf[80];
 	struct sockaddr_storage client;
 	struct addrinfo hints, *res, *res0;
 	struct timeval tv;
+	struct tm *tm;
 	struct pollfd pfd[1];
 	socklen_t addrlen;
 	int ch;
@@ -108,14 +110,13 @@ main(int argc, char *argv[])
 		if (nfds == -1 && errno != EINTR)
 			warn("poll error");
 		if ((nfds == 0) || (nfds == -1 && errno == EINTR)) {
+			dropped++;
 			if (dropped == THRESHOLD) {
-				struct tm *tm = localtime((time_t *)&tv.tv_sec);
-				char buf[80];
+				tm = localtime((time_t *)&tv.tv_sec);
 				strftime(buf, sizeof(buf), "%F %T", tm);
 				printf("%s.%06ld: lost connection\n", 
 				    buf, tv.tv_usec);
 			}
-			dropped++;
 			continue;
 		}
 
@@ -139,11 +140,12 @@ main(int argc, char *argv[])
 		}
 		gettimeofday(&tv, NULL);
 		if (dropped >= THRESHOLD) {
-			struct tm *tm = localtime((time_t *)&tv.tv_sec);
-			char buf[80];
+			tm = localtime((time_t *)&tv.tv_sec);
 			strftime(buf, sizeof(buf), "%F %T", tm);
 			printf("%s.%02ld: connection is back\n", 
 			    buf, tv.tv_usec);
+			if (verbose)
+				printf("dropped %d paquets\n", dropped);
 			dropped = 0;
 		}
 		last = buffer;
