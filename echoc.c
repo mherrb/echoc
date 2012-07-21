@@ -142,7 +142,7 @@ main(int argc, char *argv[])
 		if (dropped >= THRESHOLD) {
 			tm = localtime((time_t *)&tv.tv_sec);
 			strftime(buf, sizeof(buf), "%F %T", tm);
-			printf("%s.%02ld: connection is back\n", 
+			printf("%s.%06ld: connection is back\n", 
 			    buf, tv.tv_usec);
 			if (verbose)
 				printf("dropped %d paquets\n", dropped);
