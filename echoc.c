@@ -35,10 +35,6 @@ int verbose = 0;
 struct sockaddr *server;
 socklen_t serverlen;
 unsigned int seq = 0;
-int disconnected;
-struct timeval sent;
-
-#define THRESHOLD 10
 
 static void
 usage(void)
@@ -67,6 +63,8 @@ main(int argc, char *argv[])
 	struct sockaddr_storage client;
 	struct addrinfo hints, *res, *res0;
 	struct itimerval itv;
+	struct timeval last_ts;
+	struct timeval now, diff;
 	struct tm *tm;
 	struct pollfd pfd[1];
 	socklen_t addrlen;
@@ -75,6 +73,7 @@ main(int argc, char *argv[])
 	int ch;
 	int nfds, received = 0;
 	int error, buffer, last = -1;
+	int disconnected;
 	extern int optind;
 
 	setbuf(stdout, NULL);
@@ -139,19 +138,16 @@ main(int argc, char *argv[])
 
 	signal(SIGALRM, send_packet);
 
-	/* send initial packet */
-	gettimeofday(&sent, NULL);
-	send_packet(0);
+	gettimeofday(&last_ts, NULL);
 
 	while (1) {
-		struct timeval now, diff;
-
+		/* poll() loop to handle interruptions by SIGALRM */
 		while (1) {
 			pfd[0].fd = sock;
 			pfd[0].events = POLLIN;
 			nfds = poll(pfd, 1, timeout);
 			gettimeofday(&now, NULL);
-			timersub(&now, &sent, &diff);
+			timersub(&now, &last_ts, &diff);
 			if (nfds > 0)
 				break;
 			if (nfds == -1 && errno != EINTR)
@@ -204,7 +200,7 @@ main(int argc, char *argv[])
 			disconnected = 0;
 		}
 		last = buffer;
-		gettimeofday(&sent, NULL);
+		gettimeofday(&last_ts, NULL);
 		if (verbose)
 			printf("received %d %ld.%06ld\n", buffer, 
 			    (long)diff.tv_sec, diff.tv_usec);
