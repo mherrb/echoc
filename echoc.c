@@ -72,7 +72,7 @@ main(int argc, char *argv[])
 	socklen_t addrlen;
 	int ch;
 	int nfds, received = 0;
-	int error, buffer, last;
+	int error, buffer, last = -1;
 	extern int optind;
 
 	setbuf(stdout, NULL);
