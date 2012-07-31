@@ -164,10 +164,10 @@ main(int argc, char *argv[])
 				    seq - last, diff.tv_sec, diff.tv_usec);
 			
 			if (disconnected == 1) {
-				tm = localtime((time_t *)&now.tv_sec);
+				tm = localtime((time_t *)&last_ts.tv_sec);
 				strftime(buf, sizeof(buf), "%F %T", tm);
 				printf("%s.%06ld: lost connection\n",
-				    buf, now.tv_usec);
+				    buf, last_ts.tv_usec);
 			}
 			continue;
 		}
