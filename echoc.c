@@ -193,10 +193,9 @@ main(int argc, char *argv[])
 		if (disconnected) {
 			tm = localtime((time_t *)&now.tv_sec);
 			strftime(buf, sizeof(buf), "%F %T", tm);
-			printf("%s.%06ld: connection is back\n",
-			    buf, now.tv_usec);
-			if (verbose)
-				printf("dropped %d paquets\n", seq - last);
+			printf("%s.%06ld: connection is back "
+			    "dropped %d paquets\n",
+			    buf, now.tv_usec, seq - last);
 			disconnected = 0;
 		}
 		last = buffer;
