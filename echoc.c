@@ -111,7 +111,7 @@ main(int argc, char *argv[])
 	hints.ai_socktype = SOCK_DGRAM;
 	error = getaddrinfo(argv[0], "echo", &hints, &res0);
 	if (error)
-		errx(1, "%s", gai_strerror(error));
+		errx(1, "%s: %s", argv[0], gai_strerror(error));
 
 	for (res = res0; res != NULL; res = res->ai_next) {
 		sock = socket(res->ai_family, res->ai_socktype,
