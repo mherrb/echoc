@@ -43,7 +43,7 @@ struct timeval sent;
 static void
 usage(void)
 {
-	errx(2, "usage: echoc [-v] server");
+	errx(2, "usage: echoc [-i ms][-t ms][-v] server");
 }
 
 static void
@@ -70,14 +70,22 @@ main(int argc, char *argv[])
 	struct tm *tm;
 	struct pollfd pfd[1];
 	socklen_t addrlen;
+	long interval = 100; 	/* default interval (ms) */
+	long timeout = 500;	/* default timeout (ms) */
 	int ch;
 	int nfds, received = 0;
 	int error, buffer, last = -1;
 	extern int optind;
 
 	setbuf(stdout, NULL);
-	while ((ch = getopt(argc, argv, "v")) != -1) {
+	while ((ch = getopt(argc, argv, "i:t:v")) != -1) {
 		switch (ch) {
+		case 'i':
+			interval = atoi(optarg);
+			break;
+		case 't':
+			timeout = atoi(optarg);
+			break;
 		case 'v':
 			verbose++;
 			break;
@@ -90,6 +98,15 @@ main(int argc, char *argv[])
 	if (argc != 1)
 		usage();
 
+	if (interval <= 0 || timeout <= 0)
+		errx(2, "interval and timeout must be > 0");
+
+	/* force timeout >= interval */
+	if (timeout < interval) {
+		timeout = interval;
+		warnx("adjusting timeout to %ld ms "
+		    "(must be greater than interval)", timeout);
+	}
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = PF_UNSPEC;
 	hints.ai_socktype = SOCK_DGRAM;
@@ -113,9 +130,9 @@ main(int argc, char *argv[])
 	memset(&client, 0, sizeof(client));
 
 	/* timer values */
-	itv.it_interval.tv_usec = 100000; /* 100ms */
+	itv.it_interval.tv_usec = interval*1000; 
 	itv.it_interval.tv_sec = 0;
-	itv.it_value.tv_usec = 100000;
+	itv.it_value.tv_usec = interval*1000;
 	itv.it_value.tv_sec = 0;
 	if (setitimer(ITIMER_REAL, &itv, NULL) == -1) 
 		err(2, "setitimer");
@@ -132,14 +149,14 @@ main(int argc, char *argv[])
 		while (1) {
 			pfd[0].fd = sock;
 			pfd[0].events = POLLIN;
-			nfds = poll(pfd, 1, 200);
+			nfds = poll(pfd, 1, timeout);
 			gettimeofday(&now, NULL);
 			timersub(&now, &sent, &diff);
 			if (nfds > 0)
 				break;
 			if (nfds == -1 && errno != EINTR)
 				warn("poll error");
-			if (diff.tv_sec > 0 || diff.tv_usec > 500000) {
+			if (diff.tv_sec > 0 || diff.tv_usec > timeout*1000) {
 				disconnected++;
 				nfds = 0;
 				break;
