@@ -54,8 +54,6 @@ send_packet(bool timestamp)
 		if (verbose)
 			warn("sendto");
 	}
-	if (timestamp) 
-		clock_gettime(CLOCK_REALTIME, &sent);
 	if (verbose > 1) 
 		printf("sent %d\n", seq);
 	seq++;
@@ -169,7 +167,8 @@ main(int argc, char *argv[])
 	sigaction(SIGALRM, &sa, NULL);
 
 	/* send initial packet */
-	send_packet(true);
+	gettimeofday(&sent, NULL);
+	send_packet(0);
 
 	while (1) {
 		struct timespec now, diff;
@@ -243,6 +242,7 @@ main(int argc, char *argv[])
 		}
 		disconnected = 0;
 		last = buffer;
+		gettimeofday(&sent, NULL);
 		if (verbose > 1)
 			printf("%d %ld.%06ld\n", buffer, (long)diff.tv_sec, 
 			    diff.tv_nsec/1000);
