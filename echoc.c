@@ -194,7 +194,7 @@ main(int argc, char *argv[])
 			tm = localtime((time_t *)&now.tv_sec);
 			strftime(buf, sizeof(buf), "%F %T", tm);
 			printf("%s.%06ld: connection is back "
-			    "dropped %d paquets\n",
+			    "dropped %d packets\n",
 			    buf, now.tv_usec, seq - last);
 			disconnected = 0;
 		}
