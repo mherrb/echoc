@@ -36,7 +36,7 @@ struct sockaddr *server;
 socklen_t serverlen;
 unsigned int seq = 0;
 int disconnected;
-struct timespec sent;
+struct timeval sent;
 
 #define THRESHOLD 10
 
@@ -47,7 +47,7 @@ usage(void)
 }
 
 static void
-send_packet(bool timestamp)
+send_packet(int unused)
 {
 	if (sendto(sock, &seq, sizeof(seq), 0, server,
 		serverlen) != sizeof(seq)) {
@@ -59,36 +59,6 @@ send_packet(bool timestamp)
 	seq++;
 }
 
-static void
-timer_handler(int unused)
-{
-	send_packet(!disconnected);
-}
-
-static void
-timespec_substract(struct timespec *result,
-    const struct timespec *x, const struct timespec *y)
-{
-	struct timespec yy;
-
-	memcpy(&yy, y, sizeof(struct timespec));
-
-	/* Carry */
-	if (x->tv_nsec < y->tv_nsec) {
-		long sec = (y->tv_nsec - x->tv_nsec) / 1000000000 + 1;
-		yy.tv_nsec -= 1000000000 * sec;
-		yy.tv_sec += sec;
-	}
-	if (x->tv_nsec - y->tv_nsec > 1000000000) {
-		int sec = (x->tv_nsec - y->tv_nsec) / 1000000000;
-		yy.tv_nsec += 1000000000 * sec;
-		yy.tv_sec -= sec;
-	}
-
-	result->tv_sec = x->tv_sec - yy.tv_sec;
-	result->tv_nsec = x->tv_nsec - yy.tv_nsec;
-}
-
 int
 main(int argc, char *argv[])
 {
@@ -96,14 +66,10 @@ main(int argc, char *argv[])
 	char buf[80];
 	struct sockaddr_storage client;
 	struct addrinfo hints, *res, *res0;
-	struct timeval tv;
-	struct itimerspec ts;
-	struct sigevent se;
-	struct sigaction sa;
+	struct itimerval itv;
 	struct tm *tm;
 	struct pollfd pfd[1];
 	socklen_t addrlen;
-	timer_t timer;
 	int ch;
 	int nfds, received = 0;
 	int error, buffer, last;
@@ -145,40 +111,30 @@ main(int argc, char *argv[])
 
 	disconnected = 1;
 	memset(&client, 0, sizeof(client));
-	gettimeofday(&tv, NULL);
-
-	/* create a timer generating SIGALRM */
-	memset(&se, 0, sizeof(struct sigevent));
-	se.sigev_signo = SIGALRM;
-	se.sigev_notify = SIGEV_SIGNAL;
-	timer_create(CLOCK_REALTIME, &se, &timer);
 
 	/* timer values */
-	ts.it_interval.tv_nsec = 100000000; /* 100ms */
-	ts.it_interval.tv_sec = 0;
-	ts.it_value.tv_nsec = 100000000;
-	ts.it_value.tv_sec = 0;
-	timer_settime(timer, 0, &ts, NULL);
+	itv.it_interval.tv_usec = 100000; /* 100ms */
+	itv.it_interval.tv_sec = 0;
+	itv.it_value.tv_usec = 100000;
+	itv.it_value.tv_sec = 0;
+	if (setitimer(ITIMER_REAL, &itv, NULL) == -1) 
+		err(2, "setitimer");
 
-	/* set SIGALRM handler  */
-	sa.sa_handler = timer_handler;
-	sigemptyset(&sa.sa_mask);
-	sigaddset(&sa.sa_mask, SIGALRM); /* block SIGALRM during handler */
-	sigaction(SIGALRM, &sa, NULL);
+	signal(SIGALRM, send_packet);
 
 	/* send initial packet */
 	gettimeofday(&sent, NULL);
 	send_packet(0);
 
 	while (1) {
-		struct timespec now, diff;
+		struct timeval now, diff;
 
 		while (1) {
 			pfd[0].fd = sock;
 			pfd[0].events = POLLIN;
 			nfds = poll(pfd, 1, 200);
-			clock_gettime(CLOCK_REALTIME, &now);
-			timespec_substract(&diff, &now, &sent);
+			gettimeofday(&now, NULL);
+			timersub(&now, &sent, &diff);
 			if (nfds > 0)
 				break;
 			if (nfds == -1 && errno != EINTR)
@@ -187,11 +143,11 @@ main(int argc, char *argv[])
 				printf("%d %s\n", nfds, strerror(errno));
 			if (verbose > 1) 
 				printf("wait %ld.%06ld\n", 
-				    (long)diff.tv_sec, diff.tv_nsec/1000);
-			if (diff.tv_sec > 0 || diff.tv_nsec > 200000000) {
+				    (long)diff.tv_sec, diff.tv_usec);
+			if (diff.tv_sec > 0 || diff.tv_usec > 500000) {
 				if (verbose) 
 					printf("timeout %ld.%06ld\n", 
-					    (long)diff.tv_sec, diff.tv_nsec/1000);
+					    (long)diff.tv_sec, diff.tv_usec);
 				disconnected++;
 				nfds = 0;
 				break;
@@ -204,7 +160,7 @@ main(int argc, char *argv[])
 				tm = localtime((time_t *)&now.tv_sec);
 				strftime(buf, sizeof(buf), "%F %T", tm);
 				printf("%s.%06ld: lost connection\n",
-				    buf, now.tv_nsec  * 1000);
+				    buf, now.tv_usec);
 			}
 			continue;
 		}
@@ -235,7 +191,7 @@ main(int argc, char *argv[])
 			tm = localtime((time_t *)&now.tv_sec);
 			strftime(buf, sizeof(buf), "%F %T", tm);
 			printf("%s.%06ld: connection is back\n",
-			    buf, now.tv_nsec/1000);
+			    buf, now.tv_usec);
 			if (verbose)
 				printf("dropped %d paquets\n", seq - last);
 			exit(3);
@@ -245,7 +201,7 @@ main(int argc, char *argv[])
 		gettimeofday(&sent, NULL);
 		if (verbose > 1)
 			printf("%d %ld.%06ld\n", buffer, (long)diff.tv_sec, 
-			    diff.tv_nsec/1000);
+			    diff.tv_usec);
 	}
 	close(sock);
 	exit(0);
