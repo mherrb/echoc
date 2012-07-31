@@ -199,7 +199,7 @@ main(int argc, char *argv[])
 			disconnected = 0;
 		}
 		last = buffer;
-		gettimeofday(&last_ts, NULL);
+		memcpy(&last_ts, &now, sizeof(struct timeval));
 		if (verbose)
 			printf("received %d %ld.%06ld\n", buffer, 
 			    (long)diff.tv_sec, diff.tv_usec);
