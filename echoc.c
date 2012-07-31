@@ -54,7 +54,7 @@ send_packet(int unused)
 		if (verbose)
 			warn("sendto");
 	}
-	if (verbose > 1) 
+	if (verbose) 
 		printf("sent %d\n", seq);
 	seq++;
 }
@@ -109,7 +109,7 @@ main(int argc, char *argv[])
 	if (sock == -1)
 		err(1, "socket");
 
-	disconnected = 1;
+	disconnected = 0;
 	memset(&client, 0, sizeof(client));
 
 	/* timer values */
@@ -139,23 +139,17 @@ main(int argc, char *argv[])
 				break;
 			if (nfds == -1 && errno != EINTR)
 				warn("poll error");
-			if (verbose > 2) 
-				printf("%d %s\n", nfds, strerror(errno));
-			if (verbose > 1) 
-				printf("wait %ld.%06ld\n", 
-				    (long)diff.tv_sec, diff.tv_usec);
 			if (diff.tv_sec > 0 || diff.tv_usec > 500000) {
-				if (verbose) 
-					printf("timeout %ld.%06ld\n", 
-					    (long)diff.tv_sec, diff.tv_usec);
 				disconnected++;
 				nfds = 0;
 				break;
 			}
 		}
 		if ((nfds == 0)) {
-			if (verbose > 1) 
-				printf("!! %d packet(s) dropped\n", seq - last);
+			if (verbose) 
+				printf("%d packet(s) dropped in %ld.%06ld s\n",
+				    seq - last, diff.tv_sec, diff.tv_usec);
+			
 			if (disconnected == 1) {
 				tm = localtime((time_t *)&now.tv_sec);
 				strftime(buf, sizeof(buf), "%F %T", tm);
@@ -164,10 +158,6 @@ main(int argc, char *argv[])
 			}
 			continue;
 		}
-		if (ioctl(sock, FIONREAD, &received) == -1)
-			warn("ioctl FIONREAD");
-		if (verbose > 1)
-			printf("received %d bytes ", received);
 		addrlen = sizeof(client);
 		if ((received = recvfrom(sock, &buffer, sizeof(buffer),
 			    MSG_DONTWAIT,
@@ -187,21 +177,20 @@ main(int argc, char *argv[])
 				    name);
 			}
 		}
-		if (disconnected >= THRESHOLD) {
+		if (disconnected) {
 			tm = localtime((time_t *)&now.tv_sec);
 			strftime(buf, sizeof(buf), "%F %T", tm);
 			printf("%s.%06ld: connection is back\n",
 			    buf, now.tv_usec);
 			if (verbose)
 				printf("dropped %d paquets\n", seq - last);
-			exit(3);
+			disconnected = 0;
 		}
-		disconnected = 0;
 		last = buffer;
 		gettimeofday(&sent, NULL);
-		if (verbose > 1)
-			printf("%d %ld.%06ld\n", buffer, (long)diff.tv_sec, 
-			    diff.tv_usec);
+		if (verbose)
+			printf("received %d %ld.%06ld\n", buffer, 
+			    (long)diff.tv_sec, diff.tv_usec);
 	}
 	close(sock);
 	exit(0);
