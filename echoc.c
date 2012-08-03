@@ -64,7 +64,7 @@ main(int argc, char *argv[])
 	struct addrinfo hints, *res, *res0;
 	struct itimerval itv;
 	struct timeval last_ts;
-	struct timeval now, diff;
+	struct timeval now, diff, timeout_tv;
 	struct tm *tm;
 	struct pollfd pfd[1];
 	socklen_t addrlen;
@@ -106,6 +106,8 @@ main(int argc, char *argv[])
 		warnx("adjusting timeout to %ld ms "
 		    "(must be greater than interval)", timeout);
 	}
+	timeout_tv.tv_sec = timeout / 1000;
+	timeout_tv.tv_usec = (timeout % 1000) * 1000;
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = PF_UNSPEC;
 	hints.ai_socktype = SOCK_DGRAM;
@@ -152,7 +154,7 @@ main(int argc, char *argv[])
 				break;
 			if (nfds == -1 && errno != EINTR)
 				warn("poll error");
-			if (diff.tv_sec > 0 || diff.tv_usec > timeout*1000) {
+			if (!timercmp(&diff, &timeout_tv, <)) {
 				disconnected++;
 				nfds = 0;
 				break;
