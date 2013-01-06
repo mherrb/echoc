@@ -36,13 +36,12 @@ struct sockaddr *server;
 socklen_t serverlen;
 unsigned int seq = 0;
 
-static void
-usage(void)
-{
-	errx(2, "usage: echoc [-i ms][-t ms][-v] server");
-}
-
-static void
+ static void
+ usage(void)
+ {
+	errx(2, "usage: echoc [-c nbr][-i ms][-t ms][-v] server");
+ }
+  static void
 send_packet(int unused)
 {
 	if (sendto(sock, &seq, sizeof(seq), 0, server,
@@ -74,11 +73,16 @@ main(int argc, char *argv[])
 	int nfds, received = 0;
 	int error, buffer, last = -1;
 	int disconnected;
+	int we_count = 0, counter; /* don't loop forever */
 	extern int optind;
 
 	setbuf(stdout, NULL);
-	while ((ch = getopt(argc, argv, "i:t:v")) != -1) {
+	while ((ch = getopt(argc, argv, "c:i:t:v")) != -1) {
 		switch (ch) {
+		case 'c':
+			we_count++;
+			counter = atoi(optarg);
+			break;
 		case 'i':
 			interval = atoi(optarg);
 			break;
@@ -99,7 +103,8 @@ main(int argc, char *argv[])
 
 	if (interval <= 0 || timeout <= 0)
 		errx(2, "interval and timeout must be > 0");
-
+	if (counter < 2)
+		errx(2, "can't count down from nothing");
 	/* force timeout >= interval */
 	if (timeout < interval) {
 		timeout = interval;
@@ -205,6 +210,13 @@ main(int argc, char *argv[])
 		if (verbose)
 			printf("received %d %ld.%06ld\n", buffer, 
 			    (long)diff.tv_sec, diff.tv_usec);
+		if (we_count) {
+			counter--;
+			if (counter == 0) {
+				printf("all job done\n");
+				break;
+			}
+		}
 	}
 	close(sock);
 	exit(0);
