@@ -50,7 +50,7 @@ send_packet(int unused)
 		if (verbose)
 			warn("sendto");
 	}
-	if (verbose) 
+	if (verbose)
 		printf("sent %d\n", seq);
 	seq++;
 }
@@ -137,11 +137,11 @@ main(int argc, char *argv[])
 	memset(&client, 0, sizeof(client));
 
 	/* timer values */
-	itv.it_interval.tv_usec = interval*1000; 
+	itv.it_interval.tv_usec = interval*1000;
 	itv.it_interval.tv_sec = 0;
 	itv.it_value.tv_usec = interval*1000;
 	itv.it_value.tv_sec = 0;
-	if (setitimer(ITIMER_REAL, &itv, NULL) == -1) 
+	if (setitimer(ITIMER_REAL, &itv, NULL) == -1)
 		err(2, "setitimer");
 
 	signal(SIGALRM, send_packet);
@@ -167,10 +167,10 @@ main(int argc, char *argv[])
 			}
 		}
 		if ((nfds == 0)) {
-			if (verbose) 
+			if (verbose)
 				printf("%d packet(s) dropped in %ld.%06ld s\n",
 				    seq - last, diff.tv_sec, diff.tv_usec);
-			
+
 			if (disconnected == 1) {
 				tm = localtime((time_t *)&last_ts.tv_sec);
 				strftime(buf, sizeof(buf), "%F %T", tm);
@@ -209,7 +209,7 @@ main(int argc, char *argv[])
 		last = buffer;
 		memcpy(&last_ts, &now, sizeof(struct timeval));
 		if (verbose)
-			printf("received %d %ld.%06ld\n", buffer, 
+			printf("received %d %ld.%06ld\n", buffer,
 			    (long)diff.tv_sec, diff.tv_usec);
 		if (we_count) {
 			counter--;
