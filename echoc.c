@@ -36,12 +36,13 @@ struct sockaddr *server;
 socklen_t serverlen;
 unsigned int seq = 0;
 
- static void
- usage(void)
- {
+static void
+usage(void)
+{
 	errx(2, "usage: echoc [-c nbr][-i ms][-t ms][-v] server");
- }
-  static void
+}
+
+static void
 send_packet(int unused)
 {
 	if (sendto(sock, &seq, sizeof(seq), 0, server,
