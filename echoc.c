@@ -104,7 +104,7 @@ main(int argc, char *argv[])
 
 	if (interval <= 0 || timeout <= 0)
 		errx(2, "interval and timeout must be > 0");
-	if (counter < 2)
+	if (we_count && counter < 2)
 		errx(2, "can't count down from nothing");
 	/* force timeout >= interval */
 	if (timeout < interval) {
