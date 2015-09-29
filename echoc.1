@@ -1,0 +1,59 @@
+.Dd $Mdocdate: September 29 2015 $
+.Dt ECHOC 1
+.Os
+.Sh NAME
+.Nm echoc
+.Nd send UDP packets to network hosts and wait for replies
+.Sh SYNOPSYS
+.Nm echoc
+.Bk -words
+.Op Fl dv
+.Op Fl c Ar count
+.Op Fl i Ar ms
+.Op Fl l Ar len
+.Op Fl p Ar port
+.Op Fl t Ar ms
+.Ar host
+.Ek
+.Sh DESCRIPTION
+.Nm
+sends UDP packets to the 
+.Dv ECHO
+service on the remote 
+.Ar host .
+The options ar as follow:
+.Bl -tag -width Ds
+.It Fl c Ar count
+Stop sending after
+.Ar count
+packets have been sent.
+.It Fl d
+Set the 
+.Dv Don't Fragment
+bit.
+.It Fl i Ar ms
+wait
+.Ar i
+milliseconds between every packet (default: 100 ms).
+.It Fl l Ar len
+Send packets of length
+.Ar len
+bytes (default: 10).
+.It Fl p Ar port
+Set destination port to 
+.Ar port
+(default: 7 - echo).
+.It Fl t Ar ms
+Wait at most
+.Ar t
+milliseconds for the reply before declaring the connection dead.
+.El
+.Sh SEE ALSO
+.Xr nc 1 ,
+.Xr ping 8 ,
+.Xr ping6 8
+.Sh AUTHOR
+The
+.Nm
+utility was written for tetaneutral.net by Matthieu Herrb.
+
