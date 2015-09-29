@@ -35,18 +35,22 @@ int verbose = 0;
 struct sockaddr *server;
 socklen_t serverlen;
 unsigned int seq = 0;
+size_t len = 10;
 
 static void
 usage(void)
 {
-	errx(2, "usage: echoc [-c nbr][-i ms][-t ms][-v] server");
+	errx(2, "usage: echoc [-c nbr][-i ms][-l len][-p port][-t ms][-v] server");
 }
 
 static void
 send_packet(int unused)
 {
-	if (sendto(sock, &seq, sizeof(seq), 0, server,
-		serverlen) != sizeof(seq)) {
+	char buf[len];
+
+	snprintf(buf, len, "%d", seq);
+	if (sendto(sock, buf, len, 0, server,
+		serverlen) != len) {
 		if (verbose)
 			warn("sendto");
 	}
@@ -59,7 +63,8 @@ int
 main(int argc, char *argv[])
 {
 	char name[NI_MAXHOST];
-	char buf[80];
+	char *buf;
+	char *port = "echo";
 	struct sockaddr_storage client;
 	struct addrinfo hints, *res, *res0;
 	struct itimerval itv;
@@ -78,7 +83,7 @@ main(int argc, char *argv[])
 	extern int optind;
 
 	setbuf(stdout, NULL);
-	while ((ch = getopt(argc, argv, "c:i:t:v")) != -1) {
+	while ((ch = getopt(argc, argv, "c:i:l:p:t:v")) != -1) {
 		switch (ch) {
 		case 'c':
 			we_count++;
@@ -86,6 +91,12 @@ main(int argc, char *argv[])
 			break;
 		case 'i':
 			interval = atoi(optarg);
+			break;
+		case 'l':
+			len = atoi(optarg);
+			break;
+		case 'p':
+			port = optarg;
 			break;
 		case 't':
 			timeout = atoi(optarg);
@@ -117,7 +128,7 @@ main(int argc, char *argv[])
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = PF_UNSPEC;
 	hints.ai_socktype = SOCK_DGRAM;
-	error = getaddrinfo(argv[0], "echo", &hints, &res0);
+	error = getaddrinfo(argv[0], port, &hints, &res0);
 	if (error)
 		errx(1, "%s: %s", argv[0], gai_strerror(error));
 
@@ -147,6 +158,10 @@ main(int argc, char *argv[])
 	signal(SIGALRM, send_packet);
 
 	gettimeofday(&last_ts, NULL);
+
+	buf = malloc(len);
+	if (buf == NULL)
+		err(2, "malloc receive buffer");
 
 	while (1) {
 		/* poll() loop to handle interruptions by SIGALRM */
