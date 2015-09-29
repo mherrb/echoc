@@ -40,7 +40,7 @@ size_t len = 10;
 static void
 usage(void)
 {
-	errx(2, "usage: echoc [-c nbr][-i ms][-l len][-p port][-t ms][-v] server");
+	errx(2, "usage: echoc [-c nbr][-d][-i ms][-l len][-p port][-t ms][-v] server");
 }
 
 static void
@@ -79,15 +79,19 @@ main(int argc, char *argv[])
 	int nfds, received = 0;
 	int error, buffer, last = -1;
 	int disconnected;
+	int nofragment = 0;
 	int we_count = 0, counter; /* don't loop forever */
 	extern int optind;
 
 	setbuf(stdout, NULL);
-	while ((ch = getopt(argc, argv, "c:i:l:p:t:v")) != -1) {
+	while ((ch = getopt(argc, argv, "c:di:l:p:t:v")) != -1) {
 		switch (ch) {
 		case 'c':
 			we_count++;
 			counter = atoi(optarg);
+			break;
+		case 'd':
+			nofragment++;
 			break;
 		case 'i':
 			interval = atoi(optarg);
@@ -162,6 +166,14 @@ main(int argc, char *argv[])
 	buf = malloc(len);
 	if (buf == NULL)
 		err(2, "malloc receive buffer");
+
+	/* set the DF flag ? */
+	if (nofragment)
+		ch = IP_PMTUDISC_DO;
+	else 
+		ch = IP_PMTUDISC_DONT;
+	if (setsockopt(sock, IPPROTO_IP, IP_MTU_DISCOVER, &ch, sizeof(ch)) < 0)
+		err(2, "setsockopt IP_MTU_DISCOVER");
 
 	while (1) {
 		/* poll() loop to handle interruptions by SIGALRM */
