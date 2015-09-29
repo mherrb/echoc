@@ -167,6 +167,7 @@ main(int argc, char *argv[])
 	if (buf == NULL)
 		err(2, "malloc receive buffer");
 
+#ifdef IP_MTU_DISCOVER
 	/* set the DF flag ? */
 	if (nofragment)
 		ch = IP_PMTUDISC_DO;
@@ -174,7 +175,7 @@ main(int argc, char *argv[])
 		ch = IP_PMTUDISC_DONT;
 	if (setsockopt(sock, IPPROTO_IP, IP_MTU_DISCOVER, &ch, sizeof(ch)) < 0)
 		err(2, "setsockopt IP_MTU_DISCOVER");
-
+#endif
 	while (1) {
 		/* poll() loop to handle interruptions by SIGALRM */
 		while (1) {
