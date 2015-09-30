@@ -2,7 +2,7 @@ echoc is a small network test program that sends UDP packets to the
 echo service (it should be activated in [x]inetd on the target host).
 echoc displays the start/end date of loss of connectivity.
 
-It's distributed under the ISC license:
+It is distributed under the ISC license:
 
 /*
  * Copyright (c) 2012 Matthieu Herrb <matthieu@herrb.eu>
