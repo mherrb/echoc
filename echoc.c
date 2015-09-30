@@ -19,7 +19,9 @@
 #include <sys/time.h>
 
 #include <limits.h>
+#ifdef HAVE_BSD_STDLIB_H
 #include <bsd/stdlib.h>
+#endif
 
 #include <err.h>
 #include <errno.h>
