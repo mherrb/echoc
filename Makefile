@@ -5,7 +5,7 @@ SRCS= echoc.c
 
 OBJS= $(SRCS:%.c=%.o)
 
-LIBS=
+LIBS= -lbsd
 
 all: $(PROG)
 

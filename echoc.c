@@ -18,6 +18,9 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 
+#include <limits.h>
+#include <bsd/stdlib.h>
+
 #include <err.h>
 #include <errno.h>
 #include <netdb.h>
@@ -46,8 +49,11 @@ usage(void)
 static void
 send_packet(int unused)
 {
-	char buf[len];
+	char *buf;
 
+	buf = malloc(len);
+	if (buf == NULL)
+		return;
 	snprintf(buf, len, "%d", seq);
 	if (sendto(sock, buf, len, 0, server,
 		serverlen) != len) {
@@ -63,7 +69,9 @@ int
 main(int argc, char *argv[])
 {
 	char name[NI_MAXHOST];
-	char *buf;
+	char *recvbuf;
+	const char *errstr;
+	char date[80];
 	char *port = "echo";
 	struct sockaddr_storage client;
 	struct addrinfo hints, *res, *res0;
@@ -77,7 +85,7 @@ main(int argc, char *argv[])
 	long timeout = 500;	/* default timeout (ms) */
 	int ch;
 	int nfds, received = 0;
-	int error, buffer, last = -1;
+	int error, last = -1;
 	int disconnected;
 	int nofragment = 0;
 	int we_count = 0, counter; /* don't loop forever */
@@ -163,8 +171,8 @@ main(int argc, char *argv[])
 
 	gettimeofday(&last_ts, NULL);
 
-	buf = malloc(len);
-	if (buf == NULL)
+	recvbuf = malloc(len);
+	if (recvbuf == NULL)
 		err(2, "malloc receive buffer");
 
 #ifdef IP_MTU_DISCOVER
@@ -201,17 +209,17 @@ main(int argc, char *argv[])
 
 			if (disconnected == 1) {
 				tm = localtime((time_t *)&last_ts.tv_sec);
-				strftime(buf, sizeof(buf), "%F %T", tm);
+				strftime(date, sizeof(date), "%F %T", tm);
 				printf("%s.%06ld: lost connection\n",
-				    buf, last_ts.tv_usec);
+				    date, last_ts.tv_usec);
 			}
 			continue;
 		}
 		addrlen = sizeof(client);
-		if ((received = recvfrom(sock, &buffer, sizeof(buffer),
+		if ((received = recvfrom(sock, recvbuf, len,
 			    MSG_DONTWAIT,
 			    (struct sockaddr *) &client,
-			    &addrlen)) != sizeof(buffer)) {
+			    &addrlen)) != len) {
 			warn("recvfrom");
 		}
 
@@ -228,16 +236,18 @@ main(int argc, char *argv[])
 		}
 		if (disconnected) {
 			tm = localtime((time_t *)&now.tv_sec);
-			strftime(buf, sizeof(buf), "%F %T", tm);
+			strftime(date, sizeof(date), "%F %T", tm);
 			printf("%s.%06ld: connection is back "
 			    "dropped %d packets\n",
-			    buf, now.tv_usec, seq - last);
+			    date, now.tv_usec, seq - last);
 			disconnected = 0;
 		}
-		last = buffer;
+		last = strtonum(recvbuf, 0, INT_MAX, &errstr);
+		if (errstr)
+			errx(1, "invalid reply %s", errstr);
 		memcpy(&last_ts, &now, sizeof(struct timeval));
 		if (verbose)
-			printf("received %d %ld.%06ld\n", buffer,
+			printf("received %d %ld.%06ld\n", last,
 			    (long)diff.tv_sec, diff.tv_usec);
 		if (we_count) {
 			counter--;
