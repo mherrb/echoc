@@ -88,7 +88,7 @@ main(int argc, char *argv[])
 	int error, last = -1;
 	int disconnected;
 	int nofragment = 0;
-	int we_count = 0, counter; /* don't loop forever */
+	int we_count = 0, counter = 0; /* don't loop forever */
 	extern int optind;
 
 	setbuf(stdout, NULL);
@@ -205,7 +205,7 @@ main(int argc, char *argv[])
 		if ((nfds == 0)) {
 			if (verbose)
 				printf("%d packet(s) dropped in %ld.%06ld s\n",
-				    seq - last, diff.tv_sec, diff.tv_usec);
+				    seq - last, (long)diff.tv_sec, diff.tv_usec);
 
 			if (disconnected == 1) {
 				tm = localtime((time_t *)&last_ts.tv_sec);
