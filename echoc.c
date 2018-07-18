@@ -37,6 +37,7 @@
 
 int sock = -1;
 int verbose = 0;
+int aborting = 0;
 struct sockaddr *server;
 socklen_t serverlen;
 unsigned int seq = 0;
@@ -49,10 +50,15 @@ usage(void)
 }
 
 static void
+sigint_handler(int unused)
+{
+	aborting = 1;
+}
+
+static void
 send_packet(int unused)
 {
-	char *buf;
-
+       char *buf;
 	buf = malloc(len);
 	if (buf == NULL)
 		return;
@@ -172,9 +178,10 @@ main(int argc, char *argv[])
 	else 
 		ch = IP_PMTUDISC_DONT;
 	if (setsockopt(sock, IPPROTO_IP, IP_MTU_DISCOVER, &ch, sizeof(ch)) < 0)
-		err(2, "setsockopt IP_MTU_DISCOVER");
+               err(2, "setsockopt IP_MTU_DISCOVER");
 #endif
 	signal(SIGALRM, send_packet);
+	signal(SIGINT, sigint_handler);
 
 	/* timer values */
 	itv.it_interval.tv_usec = interval*1000;
@@ -189,9 +196,9 @@ main(int argc, char *argv[])
 	strftime(date, sizeof(date), "%F %T", tm);
 	printf("%s.%06ld: starting\n", date, last_ts.tv_usec);
 
-	while (1) {
+	while (!aborting) {
 		/* poll() loop to handle interruptions by SIGALRM */
-		while (1) {
+		while (!aborting) {
 			pfd[0].fd = sock;
 			pfd[0].events = POLLIN;
 			nfds = poll(pfd, 1, timeout);
@@ -207,11 +214,13 @@ main(int argc, char *argv[])
 				break;
 			}
 		}
+		if (aborting)
+			break;
 		if ((nfds == 0)) {
 			if (verbose)
 				printf("%d packet(s) dropped in %ld.%06ld s\n",
 				    seq - last, (long)diff.tv_sec, diff.tv_usec);
-
+			
 			if (disconnected == 1) {
 				tm = localtime((time_t *)&last_ts.tv_sec);
 				strftime(date, sizeof(date), "%F %T", tm);
@@ -227,11 +236,11 @@ main(int argc, char *argv[])
 			    &addrlen)) != len) {
 			warn("recvfrom");
 		}
-
+		
 		if (verbose && (serverlen != addrlen ||
 			memcmp(&client, server, addrlen) != 0)) {
 			if ((error = getnameinfo((struct sockaddr *)&client,
-				addrlen, name, sizeof(name),
+				    addrlen, name, sizeof(name),
 				    NULL, 0, NI_DGRAM)) != 0) {
 				warnx("%s", gai_strerror(error));
 			} else {
@@ -261,6 +270,12 @@ main(int argc, char *argv[])
 				break;
 			}
 		}
+	}
+	if (aborting) {
+		gettimeofday(&now, NULL);
+		tm = localtime((time_t *)&now.tv_sec);
+		strftime(date, sizeof(date), "%F %T", tm);
+		printf("%s.%06ld: aborting\n", date, now.tv_usec);
 	}
 	close(sock);
 	exit(0);
