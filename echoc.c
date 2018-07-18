@@ -89,7 +89,7 @@ main(int argc, char *argv[])
 	struct tm *tm;
 	struct pollfd pfd[1];
 	socklen_t addrlen;
-	long interval = 100; 	/* default interval (ms) */
+	long interval = 100;	/* default interval (ms) */
 	long timeout = 500;	/* default timeout (ms) */
 	int ch;
 	int nfds, received = 0;
@@ -175,10 +175,10 @@ main(int argc, char *argv[])
 	/* set the DF flag ? */
 	if (nofragment)
 		ch = IP_PMTUDISC_DO;
-	else 
+	else
 		ch = IP_PMTUDISC_DONT;
 	if (setsockopt(sock, IPPROTO_IP, IP_MTU_DISCOVER, &ch, sizeof(ch)) < 0)
-               err(2, "setsockopt IP_MTU_DISCOVER");
+	       err(2, "setsockopt IP_MTU_DISCOVER");
 #endif
 	signal(SIGALRM, send_packet);
 	signal(SIGINT, sigint_handler);
@@ -220,7 +220,7 @@ main(int argc, char *argv[])
 			if (verbose)
 				printf("%d packet(s) dropped in %ld.%06ld s\n",
 				    seq - last, (long)diff.tv_sec, diff.tv_usec);
-			
+
 			if (disconnected == 1) {
 				tm = localtime((time_t *)&last_ts.tv_sec);
 				strftime(date, sizeof(date), "%F %T", tm);
@@ -236,7 +236,7 @@ main(int argc, char *argv[])
 			    &addrlen)) != len) {
 			warn("recvfrom");
 		}
-		
+
 		if (verbose && (serverlen != addrlen ||
 			memcmp(&client, server, addrlen) != 0)) {
 			if ((error = getnameinfo((struct sockaddr *)&client,
