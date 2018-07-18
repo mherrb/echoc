@@ -185,6 +185,9 @@ main(int argc, char *argv[])
 		err(2, "setitimer");
 
 	gettimeofday(&last_ts, NULL);
+	tm = localtime((time_t *)&last_ts.tv_sec);
+	strftime(date, sizeof(date), "%F %T", tm);
+	printf("%s.%06ld: starting\n", date, last_ts.tv_usec);
 
 	while (1) {
 		/* poll() loop to handle interruptions by SIGALRM */
