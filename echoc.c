@@ -161,18 +161,6 @@ main(int argc, char *argv[])
 	disconnected = 0;
 	memset(&client, 0, sizeof(client));
 
-	/* timer values */
-	itv.it_interval.tv_usec = interval*1000;
-	itv.it_interval.tv_sec = 0;
-	itv.it_value.tv_usec = interval*1000;
-	itv.it_value.tv_sec = 0;
-	if (setitimer(ITIMER_REAL, &itv, NULL) == -1)
-		err(2, "setitimer");
-
-	signal(SIGALRM, send_packet);
-
-	gettimeofday(&last_ts, NULL);
-
 	recvbuf = malloc(len);
 	if (recvbuf == NULL)
 		err(2, "malloc receive buffer");
@@ -186,6 +174,18 @@ main(int argc, char *argv[])
 	if (setsockopt(sock, IPPROTO_IP, IP_MTU_DISCOVER, &ch, sizeof(ch)) < 0)
 		err(2, "setsockopt IP_MTU_DISCOVER");
 #endif
+	/* timer values */
+	itv.it_interval.tv_usec = interval*1000;
+	itv.it_interval.tv_sec = 0;
+	itv.it_value.tv_usec = interval*1000;
+	itv.it_value.tv_sec = 0;
+	if (setitimer(ITIMER_REAL, &itv, NULL) == -1)
+		err(2, "setitimer");
+
+	signal(SIGALRM, send_packet);
+
+	gettimeofday(&last_ts, NULL);
+
 	while (1) {
 		/* poll() loop to handle interruptions by SIGALRM */
 		while (1) {
