@@ -174,6 +174,8 @@ main(int argc, char *argv[])
 	if (setsockopt(sock, IPPROTO_IP, IP_MTU_DISCOVER, &ch, sizeof(ch)) < 0)
 		err(2, "setsockopt IP_MTU_DISCOVER");
 #endif
+	signal(SIGALRM, send_packet);
+
 	/* timer values */
 	itv.it_interval.tv_usec = interval*1000;
 	itv.it_interval.tv_sec = 0;
@@ -181,8 +183,6 @@ main(int argc, char *argv[])
 	itv.it_value.tv_sec = 0;
 	if (setitimer(ITIMER_REAL, &itv, NULL) == -1)
 		err(2, "setitimer");
-
-	signal(SIGALRM, send_packet);
 
 	gettimeofday(&last_ts, NULL);
 
